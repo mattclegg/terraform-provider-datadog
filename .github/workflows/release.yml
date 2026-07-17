@@ -20,20 +20,12 @@ jobs:
     environment: release
     if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/')
     steps:
-      - name: Get GitHub App token
-        id: get_token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
-        with:
-          scope: DataDog/terraform-provider-datadog
-          policy: self.release.create-release
-          pool_name: dd-api-reliability
       - name: Create tag
         id: create_tag
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410
         env:
           RELEASE_BRANCH: ${{ github.head_ref }}
         with:
-          github-token: ${{ steps.get_token.outputs.token }}
           script: |
             const tagName = `v${process.env.RELEASE_BRANCH.split("/")[1]}`;
             await github.rest.git.createRef({
@@ -55,15 +47,16 @@ jobs:
           go-version: "1.23"
       - name: Import GPG key
         id: import_gpg
-        uses: paultyng/ghaction-import-gpg@53deb67fe3b05af114ad9488a4da7b782455d588
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.PASSPHRASE }}
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@b953231f81b8dfd023c58e0854a721e35037f28b
+        uses: crazy-max/ghaction-import-gpg@v7
         with:
-          version: latest
-          args: release --clean
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          args: release --clean --parallelism=1 --auto-snapshot
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GPG_PASSPHRASE: ${{ secrets.PASSPHRASE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
