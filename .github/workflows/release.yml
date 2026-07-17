@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-16-core-latest
     environment: release
     if: github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/')
-    env:
-      HAS_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY != '' }}
     steps:
       - name: Create tag
         id: create_tag
@@ -61,3 +59,4 @@ jobs:
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
